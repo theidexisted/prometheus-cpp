@@ -4,7 +4,7 @@
 
 #include "prometheus/counter.h"
 
-#include "metrics.pb.h"
+#include "metrics_generated.h"
 
 namespace prometheus {
 class Histogram : public Metric {
@@ -12,13 +12,14 @@ class Histogram : public Metric {
   using BucketBoundaries = std::vector<double>;
 
   static const io::prometheus::client::MetricType metric_type =
-      io::prometheus::client::HISTOGRAM;
+      io::prometheus::client::MetricType_HISTOGRAM;
 
   Histogram(const BucketBoundaries& buckets);
 
   void Observe(double value);
 
-  io::prometheus::client::Metric Collect();
+  metric_collect_t Collect(label_pair_t* global_labels,
+                           flatbuffers::FlatBufferBuilder* builder) override;
 
  private:
   const BucketBoundaries bucket_boundaries_;

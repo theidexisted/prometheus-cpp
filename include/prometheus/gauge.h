@@ -5,14 +5,14 @@
 #include "prometheus/collectable.h"
 #include "prometheus/metric.h"
 
-#include "metrics.pb.h"
+#include "metrics_generated.h"
 
 namespace prometheus {
 
 class Gauge : public Metric {
  public:
   static const io::prometheus::client::MetricType metric_type =
-      io::prometheus::client::GAUGE;
+      io::prometheus::client::MetricType_GAUGE;
 
   Gauge();
   Gauge(double);
@@ -24,7 +24,8 @@ class Gauge : public Metric {
   void SetToCurrentTime();
   double Value() const;
 
-  io::prometheus::client::Metric Collect();
+  metric_collect_t Collect(label_pair_t* global_labels,
+                           flatbuffers::FlatBufferBuilder* builder) override;
 
  private:
   void Change(double);

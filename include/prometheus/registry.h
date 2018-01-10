@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <memory>
 #include <mutex>
 
 #include "prometheus/collectable.h"
@@ -10,9 +11,11 @@
 #include "prometheus/histogram.h"
 #include "prometheus/histogram_builder.h"
 
-#include "metrics.pb.h"
+//#include "metrics.pb.h"
+#include "metrics_generated.h"
 
 namespace prometheus {
+class Exposer;
 
 class Registry : public Collectable {
  public:
@@ -20,8 +23,10 @@ class Registry : public Collectable {
   friend class detail::GaugeBuilder;
   friend class detail::HistogramBuilder;
 
+  Registry() = default;
+  static std::shared_ptr<Registry> Create(Exposer&);
   // collectable
-  std::vector<io::prometheus::client::MetricFamily> Collect() override;
+  virtual builders_t Collect() override;
 
  private:
   Family<Counter>& AddCounter(const std::string& name, const std::string& help,

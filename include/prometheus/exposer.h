@@ -23,6 +23,8 @@ class Exposer {
   ~Exposer();
   void RegisterCollectable(const std::weak_ptr<Collectable>& collectable);
 
+  static Exposer& GetInstance();
+
  private:
   std::unique_ptr<CivetServer> server_;
   std::vector<std::weak_ptr<Collectable>> collectables_;

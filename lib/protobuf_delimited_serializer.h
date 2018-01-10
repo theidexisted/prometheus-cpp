@@ -1,9 +1,10 @@
+/*
 #pragma once
 
 #include <string>
 #include <vector>
 
-#include "metrics.pb.h"
+//#include "metrics.pb.h"
 
 #include "serializer.h"
 
@@ -15,3 +16,4 @@ class ProtobufDelimitedSerializer : public Serializer {
       const std::vector<io::prometheus::client::MetricFamily>& metrics);
 };
 }
+*/

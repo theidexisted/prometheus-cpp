@@ -2,7 +2,7 @@
 
 #include <atomic>
 
-#include "metrics.pb.h"
+#include "metrics_generated.h"
 
 #include "prometheus/gauge.h"
 #include "prometheus/metric.h"
@@ -11,13 +11,14 @@ namespace prometheus {
 class Counter : Metric {
  public:
   static const io::prometheus::client::MetricType metric_type =
-      io::prometheus::client::COUNTER;
+      io::prometheus::client::MetricType_COUNTER;
 
   void Increment();
   void Increment(double);
   double Value() const;
 
-  io::prometheus::client::Metric Collect();
+  metric_collect_t Collect(label_pair_t* global_labels,
+                           flatbuffers::FlatBufferBuilder* builder) override;
 
  private:
   Gauge gauge_;

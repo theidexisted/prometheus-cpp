@@ -6,7 +6,8 @@
 #include <prometheus/family.h>
 #include <prometheus/histogram.h>
 
-#include "metrics.pb.h"
+//#include "metrics.pb.h"
+#include "prometheus/metrics_generated.h"
 
 using namespace testing;
 using namespace prometheus;

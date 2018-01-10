@@ -3,16 +3,23 @@ cmake_minimum_required(VERSION 2.8.12.2 FATAL_ERROR)
 project(prometheus-cpp)
 enable_testing()
 include(GNUInstallDirs)
+add_definitions(-fPIC)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
 if(NOT DEFINED CMAKE_CXX_STANDARD AND UNIX)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread")
 endif()
 
 find_package(GoogleBenchmark)
 find_package(Protobuf REQUIRED)
 find_package(Telegraf)
+
+
+find_path(FlatBuffersHeader flatbuffers/flatbuffers.h)
+find_library(FlatBuffersLibrary NAMES libflatbuffers.a)
+message(STATUS "flatbuffer header:" ${FlatBuffersHeader})
+message(STATUS "flatbuffer library:" ${FlatBuffersLibrary})
 
 # suppress warnings
 
@@ -24,7 +31,13 @@ endif()
 
 set(CIVETWEB_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rdparty/civetweb/include)
 
-add_library(civetweb OBJECT
+set(CIVETWEB_VERSION_MAJOR 1)
+set(CIVETWEB_VERSION_MINOR 9)
+set(CIVETWEB_VERSION_PATCH 0)
+set(CIVETWEB_VERSION_STRING ${CIVETWEB_VERSION_MAJOR}.${CIVETWEB_VERSION_MINOR}.${CIVETWEB_VERSION_PATCH})
+
+
+add_library(civetweb STATIC
   3rdparty/civetweb/include/CivetServer.h
   3rdparty/civetweb/include/civetweb.h
   3rdparty/civetweb/src/CivetServer.cpp
@@ -32,6 +45,10 @@ add_library(civetweb OBJECT
   3rdparty/civetweb/src/handle_form.inl
   3rdparty/civetweb/src/md5.inl
 )
+
+set_target_properties(civetweb PROPERTIES VERSION ${CIVETWEB_VERSION_STRING}
+	SOVERSION ${CIVETWEB_VERSION_MAJOR})
+
 
 target_compile_definitions(civetweb PRIVATE
   USE_IPV6

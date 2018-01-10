@@ -1,6 +1,12 @@
 #include "prometheus/registry.h"
+#include "prometheus/exposer.h"
 
 namespace prometheus {
+std::shared_ptr<Registry> Registry::Create(Exposer& exposer) {
+  std::shared_ptr<Registry> reg = std::make_shared<Registry>();
+  exposer.RegisterCollectable(reg);
+  return reg;
+}
 
 Family<Counter>& Registry::AddCounter(
     const std::string& name, const std::string& help,
@@ -29,9 +35,9 @@ Family<Histogram>& Registry::AddHistogram(
   return *histogram_family;
 }
 
-std::vector<io::prometheus::client::MetricFamily> Registry::Collect() {
+builders_t Registry::Collect() {
   std::lock_guard<std::mutex> lock{mutex_};
-  auto results = std::vector<io::prometheus::client::MetricFamily>{};
+  auto results = builders_t{};
   for (auto&& collectable : collectables_) {
     auto metrics = collectable->Collect();
     results.insert(results.end(), metrics.begin(), metrics.end());

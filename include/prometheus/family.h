@@ -31,7 +31,7 @@ class Family : public Collectable {
   void Remove(T* metric);
 
   // Collectable
-  std::vector<io::prometheus::client::MetricFamily> Collect() override;
+  builders_t Collect() override;
 
  private:
   std::unordered_map<std::size_t, std::unique_ptr<T>> metrics_;
@@ -43,7 +43,8 @@ class Family : public Collectable {
   const std::map<std::string, std::string> constant_labels_;
   std::mutex mutex_;
 
-  io::prometheus::client::Metric CollectMetric(std::size_t hash, T* metric);
+  metric_collect_t CollectMetric(std::size_t hash, T* metric,
+                                 flatbuffers::FlatBufferBuilder* bld);
 
   static std::size_t hash_labels(
       const std::map<std::string, std::string>& labels);
@@ -75,7 +76,7 @@ T& Family<T>::Add(const std::map<std::string, std::string>& labels,
 #ifndef NDEBUG
     auto labels_iter = labels_.find(hash);
     assert(labels_iter != labels_.end());
-    const auto &old_labels = labels_iter->second;
+    const auto& old_labels = labels_iter->second;
     assert(labels == old_labels);
 #endif
     return *metrics_iter->second;
@@ -86,7 +87,6 @@ T& Family<T>::Add(const std::map<std::string, std::string>& labels,
     labels_reverse_lookup_.insert({metric, hash});
     return *metric;
   }
-
 }
 
 template <typename T>
@@ -115,31 +115,38 @@ void Family<T>::Remove(T* metric) {
 }
 
 template <typename T>
-std::vector<io::prometheus::client::MetricFamily> Family<T>::Collect() {
+builders_t Family<T>::Collect() {
   std::lock_guard<std::mutex> lock{mutex_};
-  auto family = io::prometheus::client::MetricFamily{};
-  family.set_name(name_);
-  family.set_help(help_);
-  family.set_type(T::metric_type);
+
+  auto metrics_vec =
+      std::vector<flatbuffers::Offset<io::prometheus::client::Metric>>{};
+  auto bld = make_bld_t();
   for (const auto& m : metrics_) {
-    *family.add_metric() = std::move(CollectMetric(m.first, m.second.get()));
+    metrics_vec.emplace_back(
+        std::move(CollectMetric(m.first, m.second.get(), bld.get())));
   }
-  return {family};
+  auto metrics = bld->CreateVector(metrics_vec);
+
+  auto family = io::prometheus::client::CreateMetricFamily(
+      *bld, bld->CreateString(name_), bld->CreateString(help_), T::metric_type,
+      metrics);
+  bld->Finish(family);
+  return {bld};
 }
 
 template <typename T>
-io::prometheus::client::Metric Family<T>::CollectMetric(std::size_t hash,
-                                                        T* metric) {
-  auto collected = metric->Collect();
-  auto add_label =
-      [&collected](const std::pair<std::string, std::string>& label_pair) {
-        auto pair = collected.add_label();
-        pair->set_name(label_pair.first);
-        pair->set_value(label_pair.second);
-      };
-  std::for_each(constant_labels_.cbegin(), constant_labels_.cend(), add_label);
+metric_collect_t Family<T>::CollectMetric(std::size_t hash, T* metric,
+                                          flatbuffers::FlatBufferBuilder* bld) {
+  std::vector<std::pair<std::string, std::string>> all_label;
+  for (const auto& p : constant_labels_) {
+    all_label.emplace_back(p);
+  }
   const auto& metric_labels = labels_.at(hash);
-  std::for_each(metric_labels.cbegin(), metric_labels.cend(), add_label);
+  for (const auto& p : metric_labels) {
+    all_label.emplace_back(p);
+  }
+
+  auto collected = metric->Collect(&all_label, bld);
   return collected;
 }
 }

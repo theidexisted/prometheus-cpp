@@ -3,14 +3,14 @@
 #include <string>
 #include <vector>
 
-#include "metrics.pb.h"
+#include "prometheus/collectable.h"
+#include "prometheus/metrics_generated.h"
 
 namespace prometheus {
 
 class Serializer {
  public:
   virtual ~Serializer() = default;
-  virtual std::string Serialize(
-      const std::vector<io::prometheus::client::MetricFamily>&) = 0;
+  virtual std::string Serialize(builders_t& builders) = 0;
 };
 }

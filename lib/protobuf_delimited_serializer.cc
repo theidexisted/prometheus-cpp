@@ -1,3 +1,4 @@
+/*
 #include <iostream>
 #include <sstream>
 
@@ -27,3 +28,4 @@ std::string ProtobufDelimitedSerializer::Serialize(
   return ss.str();
 }
 }
+*/

@@ -1,41 +1,53 @@
 #include <chrono>
+#include <cstdio>
 #include <map>
 #include <memory>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include <prometheus/exposer.h>
+#include <prometheus/marker.h>
 #include <prometheus/registry.h>
 
-int main(int argc, char** argv) {
-  using namespace prometheus;
+using namespace prometheus;
 
-  // create an http server running on port 8080
-  Exposer exposer{"127.0.0.1:8080"};
+auto registry = Registry::Create(Exposer::GetInstance());
 
-  // create a metrics registry with component=main labels applied to all its
-  // metrics
-  auto registry = std::make_shared<Registry>();
-
-  // add a new counter family to the registry (families combine values with the
-  // same name, but distinct label dimenstions)
-  auto& counter_family = BuildCounter()
-                             .Name("time_running_seconds")
-                             .Help("How many seconds is this server running?")
+auto& histogram_family = BuildHistogram()
+                             .Name("function_call_latency")
+                             .Help("Time cost in the functinon, in us")
                              .Labels({{"label", "value"}})
                              .Register(*registry);
+auto& histogram1 = histogram_family.Add(
+    {{"name", "foo"}},
+    Histogram::BucketBoundaries{1, 10, 50, 100, 1000, 5000, 10000, 50000, 100000, 500000, 10000000});
 
-  // add a counter to the metric family
-  auto& second_counter = counter_family.Add(
-      {{"another_label", "value"}, {"yet_another_label", "value"}});
+auto& histogram2 = histogram_family.Add(
+    {{"name", "bar"}},
+    Histogram::BucketBoundaries{1, 10, 50, 100, 1000, 5000, 10000, 50000, 100000, 500000, 10000000});
 
-  // ask the exposer to scrape the registry on incoming scrapes
-  exposer.RegisterCollectable(registry);
+int main(int argc, char** argv) {
+  std::vector<std::thread> thrs;
 
-  for (;;) {
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    // increment the counter by one (second)
-    second_counter.Increment();
+  thrs.emplace_back(std::thread([]() {
+    for (;;) {
+      prometheus::Marker marker(histogram1);
+      std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 100));
+    }
+  }));
+
+  thrs.emplace_back(std::thread([]() {
+    for (;;) {
+      prometheus::Marker marker(histogram2);
+      std::this_thread::sleep_for(std::chrono::microseconds(rand() % 100));
+    }
+
+  }));
+
+  for (auto& t : thrs) {
+    t.join();
   }
+
   return 0;
 }

@@ -39,10 +39,29 @@ void Gauge::SetToCurrentTime() {
 
 double Gauge::Value() const { return value_; }
 
+metric_collect_t Gauge::Collect(label_pair_t* global_labels,
+                                flatbuffers::FlatBufferBuilder* builder) {
+  using namespace io::prometheus::client;
+  std::vector<flatbuffers::Offset<LabelPair>> labels_vec;
+  for (const auto& p : *global_labels) {
+    auto name = builder->CreateString(p.first);
+    auto help = builder->CreateString(p.second);
+
+    labels_vec.emplace_back(CreateLabelPair(*builder, name, help));
+  }
+  auto labels = (*builder).CreateVector(labels_vec);
+
+  auto gauge = CreateGauge(*builder, Value());
+  auto metric = CreateMetric(*builder, labels, gauge);
+
+  return metric;
+}
+/*
 io::prometheus::client::Metric Gauge::Collect() {
   io::prometheus::client::Metric metric;
   auto gauge = metric.mutable_gauge();
   gauge->set_value(Value());
   return metric;
 }
+*/
 }

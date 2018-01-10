@@ -6,9 +6,12 @@
 
 #include "CivetServer.h"
 #include "handler.h"
-#include "metrics.pb.h"
 
 namespace prometheus {
+Exposer& Exposer::GetInstance() {
+  static Exposer g_exposer{"127.0.0.1:12345"};
+  return g_exposer;
+}
 
 Exposer::Exposer(const std::string& bind_address, const std::string& uri)
     : server_(new CivetServer{

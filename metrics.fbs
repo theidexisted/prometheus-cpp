@@ -1,0 +1,67 @@
+namespace io.prometheus.client;
+
+table LabelPair {
+	name:string;
+	value:string;
+}
+
+enum MetricType:byte {
+  COUNTER    = 0,
+  GAUGE      = 1,
+  SUMMARY    = 2,
+  UNTYPED    = 3,
+  HISTOGRAM  = 4
+}
+
+table Gauge {
+	value:float64;
+}
+
+table Counter {
+	value:float64;
+}
+
+table Quantile {
+	quantile:float64;
+	value:float64;
+}
+
+table Summary {
+	sample_count:int64;
+	sample_sum:float64;
+	quantile:[Quantile];
+}
+
+table Untyped {
+	value:float64;
+}
+
+table Bucket {
+	cumulative_count:uint64;
+	upper_bound:float64;
+}
+
+table Histogram {
+	sample_count:uint64;
+	sample_sum:float64;
+	bucket:[Bucket];
+}
+
+table Metric {
+	label:[LabelPair];
+	gauge:Gauge;
+	counter:Counter;
+	summary:Summary;
+	untyped:Untyped;
+	histogram:Histogram;
+	timestamp_ms:int64;
+}
+
+table MetricFamily {
+	name:string;
+	help:string;
+	type:MetricType;
+	metric:[Metric];
+}
+
+root_type MetricFamily;

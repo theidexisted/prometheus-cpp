@@ -1,3 +1,4 @@
+/*
 #pragma once
 
 #include <string>
@@ -15,3 +16,4 @@ class JsonSerializer : public Serializer {
       const std::vector<io::prometheus::client::MetricFamily>& metrics);
 };
 }
+*/

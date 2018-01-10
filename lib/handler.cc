@@ -49,11 +49,13 @@ bool MetricsHandler::handleGet(CivetServer* server,
   auto start_time_of_request = std::chrono::steady_clock::now();
 
   auto accepted_encoding = GetAcceptedEncoding(conn);
+
   auto metrics = CollectMetrics();
 
   auto content_type = std::string{};
 
   auto serializer = std::unique_ptr<Serializer>{};
+  /*
 
   if (accepted_encoding.find("application/vnd.google.protobuf") !=
       std::string::npos) {
@@ -69,17 +71,22 @@ bool MetricsHandler::handleGet(CivetServer* server,
     serializer.reset(new TextSerializer());
     content_type = "text/plain";
   }
+  */
+  // Only support plain text now
+  serializer.reset(new TextSerializer());
+  content_type = "text/plain";
 
   auto body = serializer->Serialize(metrics);
   mg_printf(conn,
             "HTTP/1.1 200 OK\r\n"
             "Content-Type: %s\r\n",
             content_type.c_str());
-  mg_printf(conn, "Content-Length: %lu\r\n\r\n", static_cast<unsigned long>(body.size()));
+  mg_printf(conn, "Content-Length: %lu\r\n\r\n",
+            static_cast<unsigned long>(body.size()));
   mg_write(conn, body.data(), body.size());
 
   auto stop_time_of_request = std::chrono::steady_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
       stop_time_of_request - start_time_of_request);
   request_latencies_.Observe(duration.count());
 
@@ -87,9 +94,9 @@ bool MetricsHandler::handleGet(CivetServer* server,
   num_scrapes_.Increment();
   return true;
 }
-std::vector<io::prometheus::client::MetricFamily>
-MetricsHandler::CollectMetrics() const {
-  auto collected_metrics = std::vector<io::prometheus::client::MetricFamily>{};
+
+builders_t MetricsHandler::CollectMetrics() const {
+  auto collected_metrics = builders_t{};
 
   for (auto&& wcollectable : collectables_) {
     auto collectable = wcollectable.lock();
